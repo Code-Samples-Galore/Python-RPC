@@ -234,6 +234,11 @@ def both(
     finally:
         logger.info("Both servers stopped")
 
-if __name__ == "__main__":
-    logger.info("XML-RPC server application started")
+@logger.catch
+def main():
+    """Main entry point for the XML-RPC server application"""
+    typer.echo("Starting XML-RPC server application...")
     app()
+
+if __name__ == "__main__":
+    main()
