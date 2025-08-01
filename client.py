@@ -1,9 +1,17 @@
+import os
 import xmlrpc.client
 import ssl
 import typer
 from loguru import logger
 
 from utils import Data, convert_value_from_xmlrpc
+
+# Ensure logs directory exists
+logs_dir = "logs"
+os.makedirs(logs_dir, exist_ok=True)
+
+# Configure loguru logger
+logger.add(os.path.join(logs_dir, "client.log"), rotation="1 MB", level="INFO")
 
 app = typer.Typer(help="XML-RPC Client - Call math functions on XML-RPC servers")
 

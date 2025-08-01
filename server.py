@@ -14,7 +14,7 @@ logs_dir = "logs"
 os.makedirs(logs_dir, exist_ok=True)
 
 # Configure loguru logger
-logger.add(os.path.join(logs_dir, "xmlrpc_server.log"), rotation="1 MB", level="INFO")
+logger.add(os.path.join(logs_dir, "server.log"), rotation="1 MB", level="INFO")
 
 app = typer.Typer(help="XML-RPC Server - Start HTTP and/or HTTPS servers")
 
