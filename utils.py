@@ -1,5 +1,6 @@
 import datetime
 import ipaddress
+import json
 
 from cryptography import x509
 from cryptography.hazmat._oid import NameOID
@@ -101,7 +102,21 @@ def convert_value_from_xmlrpc(value):
 class Data:
     """Utility class for passing args and kwargs to XML-RPC functions"""
 
+    def _check_json_serializable(self, obj, name="argument"):
+        """Check if an object is JSON serializable, raise exception if not."""
+        try:
+            json.dumps(obj)
+        except (TypeError, ValueError) as e:
+            raise ValueError(f"Non-JSON serializable {name}: {type(obj).__name__} - {str(e)}")
+
     def __init__(self, *args, response_code=None, error=None, result=None, **kwargs):
+        # Check JSON serializability of args and kwargs before processing
+        for i, arg in enumerate(args):
+            self._check_json_serializable(arg, f"argument at position {i}")
+
+        for key, value in kwargs.items():
+            self._check_json_serializable(value, f"keyword argument '{key}'")
+
         # Convert int/float values to strings for XML-RPC transmission
         self.args = [convert_value_for_xmlrpc(arg) for arg in args]
         self.kwargs = {k: convert_value_for_xmlrpc(v) for k, v in kwargs.items()}
