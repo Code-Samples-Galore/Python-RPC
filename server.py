@@ -176,11 +176,11 @@ def start_https_server(host="localhost", port=8443):
         logger.info("Server is ready to accept secure connections")
 
         server.serve_forever()
-    except OSError as e:
-        logger.error(f"Failed to start HTTPS server on {host}:{port}: {e}")
-        raise
     except ssl.SSLError as e:
         logger.error(f"SSL configuration error: {e}")
+        raise
+    except OSError as e:
+        logger.error(f"Failed to start HTTPS server on {host}:{port}: {e}")
         raise
     except KeyboardInterrupt:
         logger.info("HTTPS server shutdown requested")
