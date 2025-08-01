@@ -2,7 +2,7 @@ import xmlrpc.client
 import ssl
 import typer
 
-from utils import Data
+from utils import Data, convert_value_for_xmlrpc, convert_value_from_xmlrpc
 
 app = typer.Typer(help="XML-RPC Client - Call math functions on XML-RPC servers")
 
@@ -65,9 +65,12 @@ class XMLRPCClient:
             if error:
                 raise Exception(f"Error: {error} (Code: {response_code})")
             else:
-                return actual_result
+                # Convert string representations back to int/float for final result
+                converted_result = convert_value_from_xmlrpc(actual_result)
+                return converted_result
         else:
-            return result
+            # Convert direct results as well
+            return convert_value_from_xmlrpc(result)
 
     def call_math_function(self, operation: str, x: float, y: float, use_data: bool = False):
         """Call a math function on the server"""
@@ -75,7 +78,10 @@ class XMLRPCClient:
             if use_data:
                 result = getattr(self.proxy, operation)(Data(x=x, y=y))
             else:
-                result = getattr(self.proxy, operation)(x, y)
+                # Convert parameters for direct calls
+                converted_x = convert_value_for_xmlrpc(x)
+                converted_y = convert_value_for_xmlrpc(y)
+                result = getattr(self.proxy, operation)(converted_x, converted_y)
 
             self._print_result(f"{operation}({x}, {y})", result)
             actual_result = self._return_result(result)

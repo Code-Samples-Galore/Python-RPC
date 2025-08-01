@@ -7,7 +7,7 @@ import os
 import typer
 from loguru import logger
 
-from utils import generate_self_signed_cert, Data
+from utils import generate_self_signed_cert, Data, convert_value_from_xmlrpc, convert_value_for_xmlrpc
 
 # Ensure logs directory exists
 logs_dir = "logs"
@@ -46,22 +46,26 @@ class ThreadedXMLRPCServer(ThreadingMixIn, SimpleXMLRPCServer):
                 logger.error(error_msg)
                 return Data(response_code=404, error=error_msg).__dict__
 
-            # Process parameters to extract Data objects
+            # Process parameters to extract Data objects and convert types
             args = []
             kwargs = {}
 
             for param in params:
                 # Check if this is a Data object (serialized as dict with _is_data_object marker)
                 if isinstance(param, dict) and param.get('_is_data_object', False):
-                    # This is a Data object - extract args and kwargs
+                    # This is a Data object - extract args and kwargs and convert types
                     data_args = param.get('args', ())
                     data_kwargs = param.get('kwargs', {})
-                    args.extend(data_args)
-                    kwargs.update(data_kwargs)
-                    logger.debug(f"Unpacked Data object: args={data_args}, kwargs={data_kwargs}")
+                    # Convert string representations back to int/float
+                    converted_args = [convert_value_from_xmlrpc(arg) for arg in data_args]
+                    converted_kwargs = {k: convert_value_from_xmlrpc(v) for k, v in data_kwargs.items()}
+                    args.extend(converted_args)
+                    kwargs.update(converted_kwargs)
+                    logger.debug(f"Unpacked Data object: args={converted_args}, kwargs={converted_kwargs}")
                 else:
-                    # Regular parameter
-                    args.append(param)
+                    # Regular parameter - convert if needed
+                    converted_param = convert_value_from_xmlrpc(param)
+                    args.append(converted_param)
 
             # Call function with unpacked args and kwargs
             if kwargs:
@@ -72,6 +76,7 @@ class ThreadedXMLRPCServer(ThreadingMixIn, SimpleXMLRPCServer):
                 result = func(*args)
 
             # Always wrap the result in a successful Data object with result attribute
+            # Convert int/float results to strings for XML-RPC transmission
             return Data(response_code=200, result=result).__dict__
 
         except Exception as e:

@@ -59,16 +59,57 @@ def generate_self_signed_cert():
     print("Self-signed certificate generated: server.crt, server.key")
 
 
+def convert_value_for_xmlrpc(value):
+    """Convert int/float values to string with type markers for XML-RPC transmission"""
+    if isinstance(value, bool):
+        return value  # Keep booleans as-is, check before int since bool is subclass of int
+    elif isinstance(value, int):
+        return f"__INT__{value}"
+    elif isinstance(value, float):
+        return f"__FLOAT__{value}"
+    elif isinstance(value, (list, tuple)):
+        return [convert_value_for_xmlrpc(item) for item in value]
+    elif isinstance(value, dict):
+        return {k: convert_value_for_xmlrpc(v) for k, v in value.items()}
+    else:
+        return value
+
+
+def convert_value_from_xmlrpc(value):
+    """Convert string representations back to int/float, leaving original strings unchanged"""
+    if isinstance(value, str):
+        if value.startswith("__INT__"):
+            try:
+                return int(value[7:])  # Remove "__INT__" prefix
+            except ValueError:
+                return value  # Return unchanged if conversion fails
+        elif value.startswith("__FLOAT__"):
+            try:
+                return float(value[9:])  # Remove "__FLOAT__" prefix
+            except ValueError:
+                return value  # Return unchanged if conversion fails
+        else:
+            return value  # Keep original strings as-is
+    elif isinstance(value, (list, tuple)):
+        return type(value)(convert_value_from_xmlrpc(item) for item in value)
+    elif isinstance(value, dict):
+        return {k: convert_value_from_xmlrpc(v) for k, v in value.items()}
+    else:
+        return value
+
+
 class Data:
     """Utility class for passing args and kwargs to XML-RPC functions"""
 
     def __init__(self, *args, response_code=None, error=None, result=None, **kwargs):
-        self.args = list(args)  # Convert to list for XML-RPC compatibility
-        self.kwargs = kwargs
+        # Convert int/float values to strings for XML-RPC transmission
+        self.args = [convert_value_for_xmlrpc(arg) for arg in args]
+        self.kwargs = {k: convert_value_for_xmlrpc(v) for k, v in kwargs.items()}
         self.timestamp = datetime.datetime.now().isoformat()
         self.response_code = response_code if response_code is not None else 0
         self.error = error
-        self.result = result
+        # Convert result if it's int/float
+        self.result = convert_value_for_xmlrpc(result) if result is not None else result
         # Mark this as a Data object for XML-RPC serialization
         self._is_data_object = True
 
@@ -82,7 +123,7 @@ class Data:
 
     def get_result(self):
         """Return the result value"""
-        return self.result
+        return convert_value_from_xmlrpc(self.result)
 
     def _get_dict_data(self):
         """Get dictionary representation without None values"""
