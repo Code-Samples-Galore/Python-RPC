@@ -7,7 +7,7 @@ import os
 import typer
 from loguru import logger
 
-from utils import generate_self_signed_cert, Data, convert_value_from_xmlrpc, convert_value_for_xmlrpc
+from utils import generate_self_signed_cert, Data, convert_value_from_xmlrpc
 
 # Ensure logs directory exists
 logs_dir = "logs"
@@ -234,11 +234,7 @@ def both(
     finally:
         logger.info("Both servers stopped")
 
-@logger.catch
-def main():
-    """Main entry point for the XML-RPC server application"""
-    typer.echo("Starting XML-RPC server application...")
-    app()
-
 if __name__ == "__main__":
-    main()
+    with logger.catch():
+        typer.echo("Starting XML-RPC server application...")
+        app()
