@@ -42,4 +42,6 @@ Run the test suite using pytest:
 pytest tests/
 ```
 
+## 📄 License
 
+MIT License
