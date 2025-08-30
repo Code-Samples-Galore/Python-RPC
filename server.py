@@ -25,7 +25,7 @@ class ThreadedXMLRPCServer(ThreadingMixIn, SimpleXMLRPCServer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, allow_none=True, use_builtin_types=True, logRequests=False)
-        logger.info(f"Initialized XML-RPC server on {args[0]}")
+        logger.info("Initialized XML-RPC server on {}", args[0])
 
     def _dispatch(self, method, params):
         """Custom dispatch method to handle Data objects for args and kwargs support"""
@@ -61,7 +61,7 @@ class ThreadedXMLRPCServer(ThreadingMixIn, SimpleXMLRPCServer):
                     converted_kwargs = {k: convert_value_from_xmlrpc(v) for k, v in data_kwargs.items()}
                     args.extend(converted_args)
                     kwargs.update(converted_kwargs)
-                    logger.debug(f"Unpacked Data object: args={converted_args}, kwargs={converted_kwargs}")
+                    logger.debug("Unpacked Data object: args={}, kwargs={}", converted_args, converted_kwargs)
                 else:
                     # Regular parameter - convert if needed
                     converted_param = convert_value_from_xmlrpc(param)
@@ -69,10 +69,10 @@ class ThreadedXMLRPCServer(ThreadingMixIn, SimpleXMLRPCServer):
 
             # Call function with unpacked args and kwargs
             if kwargs:
-                logger.debug(f"Calling {method} with args={args}, kwargs={kwargs}")
+                logger.debug("Calling {} with args={}, kwargs={}", method, args, kwargs)
                 result = func(*args, **kwargs)
             else:
-                logger.debug(f"Calling {method} with args={args}")
+                logger.debug("Calling {} with args={}", method, args)
                 result = func(*args)
 
             # Always wrap the result in a successful Data object with result attribute
@@ -81,7 +81,7 @@ class ThreadedXMLRPCServer(ThreadingMixIn, SimpleXMLRPCServer):
 
         except Exception as e:
             error_msg = str(e)
-            logger.error(f"Error in dispatch for method {method}: {error_msg}")
+            logger.error("Error in dispatch for method {}: {}", method, error_msg)
             return Data(response_code=400, error=error_msg).__dict__
 
 class MathFunctions:
@@ -89,25 +89,25 @@ class MathFunctions:
 
     def add(self, x, y):
         result = x + y
-        logger.debug(f"add({x}, {y}) = {result}")
+        logger.debug("add({}, {}) = {}", x, y, result)
         return result
 
     def subtract(self, x, y):
         result = x - y
-        logger.debug(f"subtract({x}, {y}) = {result}")
+        logger.debug("subtract({}, {}) = {}", x, y, result)
         return result
 
     def multiply(self, x, y):
         result = x * y
-        logger.debug(f"multiply({x}, {y}) = {result}")
+        logger.debug("multiply({}, {}) = {}", x, y, result)
         return result
 
     def divide(self, x, y):
         if y == 0:
-            logger.warning(f"Division by zero attempted: {x} / {y}")
+            logger.warning("Division by zero attempted: {} / {}", x, y)
             raise ValueError("Cannot divide by zero")
         result = x / y
-        logger.debug(f"divide({x}, {y}) = {result}")
+        logger.debug("divide({}, {}) = {}", x, y, result)
         return result
 
 def register_functions(server):
@@ -126,22 +126,22 @@ def register_functions(server):
 def start_http_server(host="localhost", port=8000):
     """Start HTTP XML-RPC server"""
     try:
-        logger.info(f"Starting HTTP XML-RPC server on {host}:{port}")
+        logger.info("Starting HTTP XML-RPC server on {}:{}", host, port)
 
         server = ThreadedXMLRPCServer((host, port))
         register_functions(server)
 
-        logger.success(f"HTTP XML-RPC server started successfully on {host}:{port}")
+        logger.success("HTTP XML-RPC server started successfully on {}:{}", host, port)
         logger.info("Server is ready to accept connections")
 
         server.serve_forever()
     except OSError as e:
-        logger.error(f"Failed to start HTTP server on {host}:{port}: {e}")
+        logger.error("Failed to start HTTP server on {}:{}: {}", host, port, e)
         raise
     except KeyboardInterrupt:
         logger.info("HTTP server shutdown requested")
     except Exception as e:
-        logger.error(f"Unexpected error in HTTP server: {e}")
+        logger.error("Unexpected error in HTTP server: {}", e)
         raise
     finally:
         logger.info("HTTP server stopped")
@@ -149,7 +149,7 @@ def start_http_server(host="localhost", port=8000):
 def start_https_server(host="localhost", port=8443):
     """Start HTTPS XML-RPC server"""
     try:
-        logger.info(f"Starting HTTPS XML-RPC server on {host}:{port}")
+        logger.info("Starting HTTPS XML-RPC server on {}:{}", host, port)
 
         # Generate self-signed certificate if it doesn't exist
         cert_file = "server.crt"
@@ -172,20 +172,20 @@ def start_https_server(host="localhost", port=8443):
         # Wrap the server socket with SSL
         server.socket = context.wrap_socket(server.socket, server_side=True)
 
-        logger.success(f"HTTPS XML-RPC server started successfully on {host}:{port}")
+        logger.success("HTTPS XML-RPC server started successfully on {}:{}", host, port)
         logger.info("Server is ready to accept secure connections")
 
         server.serve_forever()
     except ssl.SSLError as e:
-        logger.error(f"SSL configuration error: {e}")
+        logger.error("SSL configuration error: {}", e)
         raise
     except OSError as e:
-        logger.error(f"Failed to start HTTPS server on {host}:{port}: {e}")
+        logger.error("Failed to start HTTPS server on {}:{}: {}", host, port, e)
         raise
     except KeyboardInterrupt:
         logger.info("HTTPS server shutdown requested")
     except Exception as e:
-        logger.error(f"Unexpected error in HTTPS server: {e}")
+        logger.error("Unexpected error in HTTPS server: {}", e)
         raise
     finally:
         logger.info("HTTPS server stopped")
@@ -193,13 +193,13 @@ def start_https_server(host="localhost", port=8443):
 @app.command()
 def http(host: str = "localhost", port: int = 8000):
     """Start HTTP XML-RPC server"""
-    logger.info(f"HTTP server command invoked with host={host}, port={port}")
+    logger.info("HTTP server command invoked with host={}, port={}", host, port)
     start_http_server(host, port)
 
 @app.command()
 def https(host: str = "localhost", port: int = 8443):
     """Start HTTPS XML-RPC server"""
-    logger.info(f"HTTPS server command invoked with host={host}, port={port}")
+    logger.info("HTTPS server command invoked with host={}, port={}", host, port)
     start_https_server(host, port)
 
 @app.command()
@@ -210,7 +210,7 @@ def both(
     https_port: int = 8443
 ):
     """Start both HTTP and HTTPS servers"""
-    logger.info(f"Starting both servers - HTTP on {http_host}:{http_port}, HTTPS on {https_host}:{https_port}")
+    logger.info("Starting both servers - HTTP on {}:{}, HTTPS on {}:{}", http_host, http_port, https_host, https_port)
 
     # Start both servers in separate threads
     http_thread = threading.Thread(target=start_http_server, args=(http_host, http_port), daemon=True)
@@ -229,7 +229,7 @@ def both(
         logger.info("Shutdown signal received for both servers")
         print("\nShutting down servers...")
     except Exception as e:
-        logger.error(f"Error running both servers: {e}")
+        logger.error("Error running both servers: {}", e)
         raise
     finally:
         logger.info("Both servers stopped")

@@ -24,30 +24,30 @@ class DataServerProxy(xmlrpc.client.ServerProxy):
             self.__name = name
 
         def __call__(self, *args, **kwargs):
-            logger.debug(f"DataServerProxy._Method.__call__: method={self.__name}, args={args}, kwargs={kwargs}")
+            logger.debug("DataServerProxy._Method.__call__: method={}, args={}, kwargs={}", self.__name, args, kwargs)
 
             # Don't wrap system/introspection calls
             if self.__name.startswith("system."):
-                logger.debug(f"System method detected: {self.__name}, passing args as-is")
+                logger.debug("System method detected: {}, passing args as-is", self.__name)
                 return self.__send(self.__name, args)
 
             # If the first argument is already a Data object, pass as-is
             if args and isinstance(args[0], Data):
-                logger.debug(f"Data object detected as first argument, passing as-is: {args[0]}")
+                logger.debug("Data object detected as first argument, passing as-is: {}", args[0])
                 return self.__send(self.__name, args)
 
             # Otherwise, wrap all args/kwargs in a Data object
             data_obj = Data(*args, **kwargs)
-            logger.debug(f"Created Data object: {data_obj}")
-            logger.debug(f"Sending to server: method={self.__name}, data={data_obj}")
+            logger.debug("Created Data object: {}", data_obj)
+            logger.debug("Sending to server: method={}, data={}", self.__name, data_obj)
 
             result = self.__send(self.__name, (data_obj,))
-            logger.debug(f"Received result from server: {result}")
+            logger.debug("Received result from server: {}", result)
             return result
 
         def __getattr__(self, name):
             full_name = f"{self.__name}.{name}"
-            logger.debug(f"DataServerProxy._Method.__getattr__: creating method {full_name}")
+            logger.debug("DataServerProxy._Method.__getattr__: creating method {}", full_name)
             return DataServerProxy._Method(self.__send, full_name)
 
     def __getattr__(self, name):
@@ -55,13 +55,13 @@ class DataServerProxy(xmlrpc.client.ServerProxy):
         if name.startswith('_'):
             raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
-        logger.debug(f"DataServerProxy.__getattr__: creating method {name}")
+        logger.debug("DataServerProxy.__getattr__: creating method {}", name)
         return DataServerProxy._Method(self._ServerProxy__request, name)
 
     def __init__(self, uri, **kwargs):
-        logger.debug(f"Initializing DataServerProxy with uri={uri}, kwargs={kwargs}")
+        logger.debug("Initializing DataServerProxy with uri={}, kwargs={}", uri, kwargs)
         super().__init__(uri, **kwargs)
-        logger.info(f"DataServerProxy initialized for {uri}")
+        logger.info("DataServerProxy initialized for {}", uri)
 
 class XMLRPCClient:
     """XML-RPC client supporting both HTTP and HTTPS with kwargs support"""
@@ -74,7 +74,7 @@ class XMLRPCClient:
             server_url: URL of the XML-RPC server
             verify_ssl: Whether to verify SSL certificates (False for self-signed)
         """
-        logger.debug(f"Initializing XMLRPCClient with server_url={server_url}, verify_ssl={verify_ssl}")
+        logger.debug("Initializing XMLRPCClient with server_url={}, verify_ssl={}", server_url, verify_ssl)
         self.server_url = server_url
 
         if server_url.startswith('https://') and not verify_ssl:
@@ -88,28 +88,28 @@ class XMLRPCClient:
             logger.debug("Creating standard proxy for HTTP")
             self.proxy = DataServerProxy(server_url, allow_none=True, use_builtin_types=True)
 
-        logger.info(f"XMLRPCClient initialized for {server_url}")
+        logger.info("XMLRPCClient initialized for {}", server_url)
 
     def test_connection(self, verbose: bool = True):
         """Test connection to server"""
-        logger.debug(f"Testing connection to {self.server_url}")
+        logger.debug("Testing connection to {}", self.server_url)
         try:
             # Use introspection to test connection since it's enabled
             methods = self.proxy.system.listMethods()
             if verbose:
                 print(f"✓ Connected to {self.server_url}")
                 print(f"Available methods: {', '.join(methods)}")
-            logger.success(f"Connection test successful for {self.server_url}")
+            logger.success("Connection test successful for {}", self.server_url)
             return True
         except Exception as e:
             if verbose:
                 print(f"✗ Failed to connect to {self.server_url}: {e}")
-            logger.error(f"Connection test failed for {self.server_url}: {e}")
+            logger.error("Connection test failed for {}: {}", self.server_url, e)
             return False
 
     def _print_result(self, operation, result):
         """Helper method to print results from Data objects"""
-        logger.debug(f"_print_result called with operation={operation}, result={result}")
+        logger.debug("_print_result called with operation={}, result={}", operation, result)
         if isinstance(result, dict) and result.get('_is_data_object', False):
             response_code = result.get('response_code', 'unknown')
             actual_result = result.get('result')
@@ -117,49 +117,49 @@ class XMLRPCClient:
 
             if error:
                 print(f"{operation} - Code: {response_code}, Error: {error}")
-                logger.warning(f"Operation {operation} returned error: {error} (Code: {response_code})")
+                logger.warning("Operation {} returned error: {} (Code: {})", operation, error, response_code)
             else:
                 print(f"{operation} = {actual_result} (Code: {response_code})")
-                logger.info(f"Operation {operation} successful: {actual_result} (Code: {response_code})")
+                logger.info("Operation {} successful: {} (Code: {})", operation, actual_result, response_code)
         else:
             print(f"{operation} = {result}")
-            logger.info(f"Operation {operation} returned: {result}")
+            logger.info("Operation {} returned: {}", operation, result)
 
     def _return_result(self, result):
-        logger.debug(f"_return_result called with result={result}")
+        logger.debug("_return_result called with result={}", result)
         if isinstance(result, dict) and result.get('_is_data_object', False):
             response_code = result.get('response_code', 'unknown')
             actual_result = result.get('result')
             error = result.get('error')
 
             if error:
-                logger.error(f"Server returned error: {error} (Code: {response_code})")
+                logger.error("Server returned error: {} (Code: {})", error, response_code)
                 raise Exception(f"Error: {error} (Code: {response_code})")
             else:
                 # Convert string representations back to int/float for final result
                 converted_result = convert_value_from_xmlrpc(actual_result)
-                logger.debug(f"Converted result from {actual_result} to {converted_result}")
+                logger.debug("Converted result from {} to {}", actual_result, converted_result)
                 return converted_result
         else:
             # Convert direct results as well
             converted_result = convert_value_from_xmlrpc(result)
-            logger.debug(f"Converted direct result from {result} to {converted_result}")
+            logger.debug("Converted direct result from {} to {}", result, converted_result)
             return converted_result
 
     def call_math_function(self, operation: str, x: float, y: float):
         """Call a math function on the server"""
-        logger.debug(f"call_math_function: operation={operation}, x={x}, y={y}")
+        logger.debug("call_math_function: operation={}, x={}, y={}", operation, x, y)
         try:
             # Arguments are automatically wrapped in Data by DataServerProxy
             result = getattr(self.proxy, operation)(x=x, y=y)
 
             self._print_result(f"{operation}({x}, {y})", result)
             actual_result = self._return_result(result)
-            logger.success(f"Math function {operation}({x}, {y}) completed successfully: {actual_result}")
+            logger.success("Math function {}({}, {}) completed successfully: {}", operation, x, y, actual_result)
             return actual_result
         except Exception as e:
             print(f"Error calling {operation}({x}, {y}): {e}")
-            logger.error(f"Error calling {operation}({x}, {y}): {e}")
+            logger.error("Error calling {}({}, {}): {}", operation, x, y, e)
             return None
 
 def get_client(url: str) -> XMLRPCClient:
